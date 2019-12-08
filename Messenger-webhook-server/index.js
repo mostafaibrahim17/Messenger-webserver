@@ -1,24 +1,3 @@
-/**
- * Copyright 2017-present, Facebook, Inc. All rights reserved.
- *
- * This source code is licensed under the license found in the
- * LICENSE file in the root directory of this source tree.
- *
- * Messenger Platform Quick Start Tutorial
- *
- * This is the completed code for the Messenger Platform quick start tutorial
- *
- * https://developers.facebook.com/docs/messenger-platform/getting-started/quick-start/
- *
- * To run this code, you must do the following:
- *
- * 1. Deploy this code to a server running Node.js
- * 2. Run `npm install`
- * 3. Update the VERIFY_TOKEN
- * 4. Add your PAGE_ACCESS_TOKEN to your environment vars
- *
- */
-
 'use strict';
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 // Imports dependencies and set up http server
@@ -102,7 +81,6 @@ app.get('/webhook', (req, res) => {
 
 function handleMessage(sender_psid, received_message) {
   let response;
-  // console.log(response)
   // Checks if the message contains text
   if (received_message.text) {    
     // Create the payload for a basic text message, which
@@ -111,41 +89,53 @@ function handleMessage(sender_psid, received_message) {
       "text": `You sent the message: "${received_message.text}". Now send me an attachment!`
     }
   } else if (received_message.attachments) {
+    console.log("got attachment...")
     // Get the URL of the message attachment
-    let attachment_url = received_message.attachments[0].payload.url;
-    response = {
-      "attachment": {
-        "type": "template",
-        "payload": {
-          "template_type": "generic",
-          "elements": [{
-            "title": "Is this the right picture?",
-            "subtitle": "Tap a button to answer.",
-            "image_url": attachment_url,
-            "buttons": [
-              {
-                "type": "postback",
-                "title": "Yes!",
-                "payload": "yes",
-              },
-              {
-                "type": "postback",
-                "title": "No!",
-                "payload": "no",
-              }
-            ],
-          }]
-        }
+    let img = received_message.attachments;
+    request({
+      url: " https://fast-puma-31.localtunnel.me/predict",
+      method: "POST",
+      json: true,   // <--Very important!!!
+      body: img
+  }, function (error, response, body){
+      console.log(body)
+      console.log(typeof(body.result))
+      console.log(response.body);
+      console.log(sender_psid);
+
+      if (error){
+        console.log(error)
       }
-    }
+      response = {
+        "text": body.result
+      }
+      let request_body = {
+        "recipient": {
+          "id": sender_psid
+        },
+        "message": response
+      }
+      // Send the HTTP request to the Messenger Platform
+      request({
+        "uri": "https://graph.facebook.com/v2.6/me/messages",
+        "qs": { "access_token": "EAASBgxQETo8BAPcq0AK67YKwE4y3MTrpH7ZB5ZBBKq75CsWZB3h2CXkqDfOFR6jmIgWZAehNTBjaIbkSQNqIaipmF2rSGkQPihzh9mwDsvv9w1imkNTpZBonKZA7vt0Ug59e1leRyD4M2GCrqHmoY5ZC2XoS7X0bS6RyR4FUxNW9wZDZD" },
+        "method": "POST",
+        "json": request_body
+      }, (err, res, body) => {
+        if (!err) {
+          console.log('message sent!')
+        } else {
+          console.error("Unable to send message:" + err);
+        }
+      }); 
+  });
   } 
-  
+  callSendAPI(sender_psid, response);
   // Send the response message
-  callSendAPI(sender_psid, response);    
+     
 }
 
 function handlePostback(sender_psid, received_postback) {
-  console.log('ok')
    let response;
   // Get the payload for the postback
   let payload = received_postback.payload;
@@ -160,10 +150,9 @@ function handlePostback(sender_psid, received_postback) {
   callSendAPI(sender_psid, response);
 }
 
+
 function callSendAPI(sender_psid, response) {
-
-  console.log(response.attachment)
-
+  // console.log(typeof(response))
   // Construct the message body
   let request_body = {
     "recipient": {
@@ -171,11 +160,10 @@ function callSendAPI(sender_psid, response) {
     },
     "message": response
   }
-  // console.log("sending message")
   // Send the HTTP request to the Messenger Platform
   request({
     "uri": "https://graph.facebook.com/v2.6/me/messages",
-    "qs": { "access_token": "EAASBgxQETo8BAIT6sXXjvZA6vZCj6NdEd3tqYj3eBqzBwPnfYu38tdlZC8zx7lmMFvhI37KYXmUROjySfEwcJ5zc2ZBZCTZAlVZA9iB0QsditWIhNncZC7UzZBcJkQ9pbkJ4bojuTeUYRXwPNI9ZC8nItx0kHvYik01ylM7DCsbKtxRAZDZD" },
+    "qs": { "access_token": "EAASBgxQETo8BAPcq0AK67YKwE4y3MTrpH7ZB5ZBBKq75CsWZB3h2CXkqDfOFR6jmIgWZAehNTBjaIbkSQNqIaipmF2rSGkQPihzh9mwDsvv9w1imkNTpZBonKZA7vt0Ug59e1leRyD4M2GCrqHmoY5ZC2XoS7X0bS6RyR4FUxNW9wZDZD" },
     "method": "POST",
     "json": request_body
   }, (err, res, body) => {

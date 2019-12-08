@@ -8,6 +8,8 @@ from utils import CTCLabelConverter, AttnLabelConverter # local
 from dataset import RawDataset, AlignCollate # local
 from model import Model # local
 import sys
+import requests
+from googletrans import Translator
 import os
 import time
 import torch.nn as nn
@@ -82,14 +84,19 @@ def test_net(net, image, text_threshold, link_threshold, low_text, cuda, poly, r
     render_img = np.hstack((render_img, score_link))
     ret_score_text = imgproc.cvt2HeatmapImg(render_img)
 
-    if args.show_time : print("\ninfer/postproc time : {:.3f}/{:.3f}".format(t0, t1))
+    # if args.show_time : print("\ninfer/postproc time : {:.3f}/{:.3f}".format(t0, t1))
 
     return boxes, polys, ret_score_text
 
 
 
-def make_prediction(input_image):
+def make_prediction(url):
     # craft net run
+    with open('FB_IMG_1490534565948.jpg', 'wb') as f:
+        f.write(requests.get(url).content)
+
+    input_image = ['FB_IMG_1490534565948.jpg']
+    print(input_image)
     CraftNetOut = runCraftNet(input_image) # this is a list, index 0 is the marked image, index 1 is the text coords
     img = Image.fromarray(CraftNetOut[0])
     text = CraftNetOut[1]
@@ -113,6 +120,8 @@ def make_prediction(input_image):
 
     # deep text run
     finalOut = runDeepTextNet(segmentedImages)
+    finalOut = translate(finalOut)
+    print(finalOut)
     return finalOut
     # output
 
@@ -123,20 +132,19 @@ def runCraftNet(image_list): # image list is the folder containing the images
     net.load_state_dict(copyStateDict(torch.load(args.trained_model, map_location='cpu')))
     net.eval()
 
-    image_list, _, _ = file_utils.get_files(args.test_folder)
+    # image_list, _, _ = file_utils.get_files(args.test_folder)
     t = time.time()
-    result_folder = './result/'
+    # result_folder = './result/'
 
     # load data
     refine_net = None
 
     for k, image_path in enumerate(image_list):
-        print("Test image {:d}/{:d}: {:s}".format(k+1, len(image_list), image_path), end='\r')
         image = imgproc.loadImage(image_path)
 
         bboxes, polys, score_text = test_net(net, image, args.text_threshold, args.link_threshold, args.low_text, args.cuda, args.poly, refine_net)
 
-    print("elapsed time : {}s ".format(time.time() - t))
+    # print("elapsed time : {}s ".format(time.time() - t))
     img = np.array(image[:,:,::-1])
     txt = []
     for i, box in enumerate(polys):
@@ -169,6 +177,11 @@ def runCraftNet(image_list): # image list is the folder containing the images
 
 ######## 2nd model
 
+def translate(text):
+    translator = Translator()
+    translations = translator.translate(text, dest = 'en')
+    for translation in translations:
+        return translation.text
 
 def runDeepTextNet(segmentedImagesList):
     opt = argparse.Namespace(FeatureExtraction='ResNet', PAD=False, Prediction='Attn', 
@@ -220,14 +233,19 @@ def runDeepTextNet(segmentedImagesList):
 
             # calculate confidence score (= multiply of pred_max_prob)
             confidence_score = pred_max_prob.cumprod(dim=0)[-1]
-            print(pred)
+            # print(pred)
             out_preds_texts.append(pred)
-    print(out_preds_texts)
-    return(out_preds_texts)
+    # print(out_preds_texts)
 
+    sentence_out = [' '.join(out_preds_texts)]
+    return(sentence_out)
+
+print("")
 # deepNetout = runDeepTextNet()
-image_list, _, _ = file_utils.get_files(args.test_folder)
-print(make_prediction(image_list))
+# image_list, _, _ = file_utils.get_files(args.test_folder)
+# print(image_list)
+# img = Image.open()
+# print(make_prediction(image_list))
 
 
 
