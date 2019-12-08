@@ -85,15 +85,48 @@ function handleMessage(sender_psid, received_message) {
   if (received_message.text) {    
     // Create the payload for a basic text message, which
     // will be added to the body of our request to the Send API
-    response = {
-      "text": `You sent the message: "${received_message.text}". Now send me an attachment!`
-    }
+    
+
+    request({
+      url: " https://curvy-robin-24.localtunnel.me/transtext",
+      method: "POST",
+      json: true,   // <--Very important!!!
+      body: received_message.text
+  }, function (error, response, body){
+      if (error){
+        console.log(error)
+      }
+      console.log(body)
+      response = {
+        "text": body.results
+      }
+      let request_body = {
+        "recipient": {
+          "id": sender_psid
+        },
+        "message": response
+      }
+      // Send the HTTP request to the Messenger Platform
+      request({
+        "uri": "https://graph.facebook.com/v2.6/me/messages",
+        "qs": { "access_token": "EAASBgxQETo8BAPcq0AK67YKwE4y3MTrpH7ZB5ZBBKq75CsWZB3h2CXkqDfOFR6jmIgWZAehNTBjaIbkSQNqIaipmF2rSGkQPihzh9mwDsvv9w1imkNTpZBonKZA7vt0Ug59e1leRyD4M2GCrqHmoY5ZC2XoS7X0bS6RyR4FUxNW9wZDZD" },
+        "method": "POST",
+        "json": request_body
+      }, (err, res, body) => {
+        if (!err) {
+          console.log('message sent!')
+        } else {
+          console.error("Unable to send message:" + err);
+        }
+      }); 
+    });
+
   } else if (received_message.attachments) {
     console.log("got attachment...")
     // Get the URL of the message attachment
     let img = received_message.attachments;
     request({
-      url: " https://fast-puma-31.localtunnel.me/predict",
+      url: " https://curvy-robin-24.localtunnel.me/predict",
       method: "POST",
       json: true,   // <--Very important!!!
       body: img
