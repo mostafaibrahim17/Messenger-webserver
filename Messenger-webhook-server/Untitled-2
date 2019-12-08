@@ -1,0 +1,1 @@
+curl -i -X GET "https://graph.facebook.com/{your-user-id}/accounts&access_token={user-access-token} 
