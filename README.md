@@ -13,3 +13,6 @@ ML-models-server is the backend, this should contain the 3 models
 	3) translation
 ML-server in flask
 
+For more details, check:
+
+https://towardsdatascience.com/how-to-build-a-ml-powered-image-translation-messenger-chatbot-in-less-than-24-hours-1bf9d7b88f8b
